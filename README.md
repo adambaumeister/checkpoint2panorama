@@ -1,22 +1,25 @@
 # R80.20 Addressgroup -> Panorama converter tool
 
+## Notice
+This code is delivered without warranty, support, or any guarantee of success. 
+
 ## What?
 This is a very quick script to convert Checkpoint addresses/address-groups to PAN objects and import into a Panorama.
 
 This supports nested address groups within the checkpoint configuration.
 
-Checkpoint configuration exports from R80 management servers sometimes do not properly resolve member UUIDs. It's 
-unclear why this is.
+Checkpoint configuration exports from R80 management servers sometimes do not contain the objects that match
 
 ## How
 
 ### 1. Get the objects
 
-You can use the show package method:
+From the r80.20 management server
 ```bash
 $MDS_FWDIR/scripts/web_api_show_package.sh -k <PACKAGE NAME> -d <DOMAIN NAME>
 ```
-the file will be named [package]_objects.json
+
+When extracted, there will be a named [package]_objects.json
 
 **untested** you may also be able to use the output of show objects:
 ```bash
