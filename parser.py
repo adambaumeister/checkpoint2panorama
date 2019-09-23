@@ -25,6 +25,7 @@ def set_at_path(panos, xpath, elementvalue):
 class Parser:
     def __init__(self):
         self.groups = []
+        self.nat_rules = []
         self.services = []
         self.addresses = []
         self.ids = {}
@@ -38,13 +39,11 @@ class Parser:
             "group": self.parse_group,
             "service-group": self.parse_group,
             "nat-rule": self.parse_natrule,
-            "nat-section": self.parse_natrule,
+            "nat-section": self.parse_natsection,
         }
 
 
     def add(self, obj):
-        self.ids[obj.get_id()] = obj
-        self.names[obj.get_name()] = obj
         if type(obj) is Group:
             self.groups.append(obj)
 
@@ -54,8 +53,21 @@ class Parser:
         if type(obj) is Service:
             self.services.append(obj)
 
+        if type(obj) is NatRule:
+            self.nat_rules.append(obj)
+
+        # For objects that contain other objects...
+        if type(obj) is list:
+            for o in obj:
+                self.add(o)
+
+            return
+
+        self.ids[obj.get_id()] = obj
+        self.names[obj.get_name()] = obj
+
     def summary(self):
-        print("Addresses: {} Groups:{} Services:{}".format(len(self.addresses), len(self.groups), len(self.services)))
+        print("Addresses: {} Groups:{} Services:{} Nat-rules: {}".format(len(self.addresses), len(self.groups), len(self.services), len(self.nat_rules)))
 
     def resolve_all(self):
         # After parsing, resolve all groups
@@ -76,9 +88,17 @@ class Parser:
 
 
     def parse_natrule(self, d):
+
         nr = NatRule(d)
         return nr
 
+    def parse_natsection(self, d):
+        natrules = []
+        for r in d['rulebase']:
+            nr = NatRule(r)
+            natrules.append(nr)
+
+        return natrules
 
     def parse_group_range(self, d):
         groups = []
