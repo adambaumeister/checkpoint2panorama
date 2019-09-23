@@ -1,0 +1,3 @@
+<entry name="{{ object.name }}">
+    <ip-netmask>{{ object.ipv4_address }}</ip-netmask>
+</entry>

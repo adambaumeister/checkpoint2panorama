@@ -1,0 +1,7 @@
+<entry name="{{ object.name }}">
+    <static>
+        {% for member in object.members %}
+        <member>{{ member.name }}</member>
+        {% endfor %}
+    </static>
+</entry>
