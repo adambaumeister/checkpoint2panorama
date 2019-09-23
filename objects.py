@@ -28,7 +28,14 @@ class Object():
 class Service(Object):
     def __init__(self, v):
         self.__dict__ = v
+        self.service_type = v['type']
+
         super(Service, self).__init__(v['uid'])
+        self.xml_template = "service.xml"
+        if self.service_type:
+            self.service_type = self.service_type.split('-')[1]
+        else:
+            self.service_type = "tcp"
 
 
 class Address(Object):
@@ -70,7 +77,10 @@ class Group(Object):
         for m in self.members:
             if m in objects:
                 new_members.append(objects[m])
-                self.group_type = type(objects[m])
+                gt = type(objects[m])
+                # Only set group type wehn we have one object that is not of type group
+                if gt is not Group:
+                    self.group_type = gt
 
         self.members = new_members
 
@@ -131,10 +141,10 @@ class Group(Object):
         return r
 
     def combine(self, members):
-        print(self.name + "existing members:")
-        for m in self.members:
-            print(m.get_name())
-
-        print(self.name + "New members:")
         for m in members:
-            print(m.get_name())
+            gt = type(m)
+            # Only set group type wehn we have one object that is not of type group
+            if gt is not Group:
+                self.group_type = gt
+
+        self.members = self.members + members

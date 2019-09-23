@@ -1,0 +1,7 @@
+<entry name="{{ object.name }}">
+    <protocol>
+        <{{ object.service_type }}>
+            <port>{{ object.port }}</port>
+        </{{ object.service_type }}>
+    </protocol>
+</entry>

@@ -31,7 +31,7 @@ class Parser:
         self.names = {}
 
         self.TYPE_SWITCH = {
-            "protocol": self.parse_service,
+            "port": self.parse_service,
             "ipv4-address": self.parse_address,
             "subnet4": self.parse_address,
             "members": self.parse_group
@@ -52,6 +52,11 @@ class Parser:
     def summary(self):
         print("Addresses: {} Groups:{} Services:{}".format(len(self.addresses), len(self.groups), len(self.services)))
 
+    def resolve_all(self):
+        # After parsing, resolve all groups
+        for group in self.groups:
+            group.resolve_members(self.ids)
+
     def parse(self, d):
 
         for item in d:
@@ -60,9 +65,7 @@ class Parser:
                     obj = self.TYPE_SWITCH[k](item)
                     self.add(obj)
 
-        # After parsing, resolve all groups
-        for group in self.groups:
-            group.resolve_members(self.ids)
+        self.resolve_all()
         self.summary()
 
     def parse_group_range(self, d):
@@ -111,9 +114,9 @@ class Parser:
 
     def dump_groups(self):
         for g in self.groups:
-            print(" " + g.name)
+            print(" {} : {}".format(g.get_name(), g.group_type))
             for member in g.members:
-                print("  " + member.name)
+                print("    {}   {}".format(member.name, type(member)))
 
     def dump_names(self):
         print("\n".join(self.names.keys()))
@@ -180,6 +183,8 @@ def main():
     script_options.add_argument("object_file", help="Json filename")
     script_options.add_argument("--group_ranges", help='Output of mgmt_cli show groups show-as-ranges "true" --format json')
     script_options.add_argument("--dump", action="store_true")
+    script_options.add_argument("--dump_name")
+    script_options.add_argument("--parseonly", action="store_true")
 
     script_options.add_argument("--username", help="Firewall/Panorama username. Can also use envvar CC_USERNAME.")
     script_options.add_argument("--address", help="Firewall/Panorama address. Can also use envvar CC_ADDRESS")
@@ -190,18 +195,23 @@ def main():
     j = parser.parse_file(args.object_file)
     parser.parse(j)
 
-    if args.dump:
-        parser.dump()
-        exit()
-
     if args.group_ranges:
         j = parser.parse_file(args.group_ranges)
         parser.parse_group_range(j)
 
+
+    if args.parseonly:
+        exit()
+
+
+    if args.dump:
+        parser.dump()
+        exit()
+
+
     addr = env_or_prompt("address", args, prompt_long="address or address:port of PANOS Device to configure: ")
     user = env_or_prompt("username", args)
     pw = env_or_prompt("password", args, secret=True)
-
 
     p = Panos(user=user, addr=addr, pw=pw)
     parser.set_groups(p)
