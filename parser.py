@@ -58,6 +58,8 @@ class Parser:
             group.resolve_members(self.ids)
 
     def parse(self, d):
+        if 'objects-dictionary' in d:
+            d = d['objects-dictionary']
 
         for item in d:
             for k in self.TYPE_SWITCH.keys():
