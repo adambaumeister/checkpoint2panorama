@@ -20,6 +20,9 @@ class Object():
         return r
 
     def get_name(self):
+        if 'name' not in self.__dict__:
+            return self.id
+
         if self.name:
             return self.name
 
@@ -37,6 +40,14 @@ class Service(Object):
         else:
             self.service_type = "tcp"
 
+class NatRule(Object):
+    def __init__(self, v):
+
+        self.__dict__ = v
+        super(NatRule, self).__init__(v['uid'])
+
+    def dump(self):
+        print("\n".join(self.__dict__.keys()))
 
 class Address(Object):
     def __init__(self, v):

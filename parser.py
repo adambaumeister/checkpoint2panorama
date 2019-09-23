@@ -37,8 +37,8 @@ class Parser:
             "network": self.parse_address,
             "group": self.parse_group,
             "service-group": self.parse_group,
-            "nat-rule": self.parse_rule,
-            "nat-section": self.parse_rule,
+            "nat-rule": self.parse_natrule,
+            "nat-section": self.parse_natrule,
         }
 
 
@@ -74,11 +74,11 @@ class Parser:
             else:
                 print("type miss: {}".format(k))
 
-        self.resolve_all()
-        self.summary()
 
-    def parse_rule(self, d):
-        return
+    def parse_natrule(self, d):
+        nr = NatRule(d)
+        return nr
+
 
     def parse_group_range(self, d):
         groups = []
@@ -192,7 +192,7 @@ def env_or_prompt(prompt, args, prompt_long=None, secret=False):
 def main():
     parser = argparse.ArgumentParser(description="Convert checkpoint json configuration exports", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     script_options = parser.add_argument_group("Script options")
-    script_options.add_argument("object_file", help="Json filename")
+    script_options.add_argument("object_files", help="Json filename", nargs="*")
     script_options.add_argument("--group_ranges", help='Output of mgmt_cli show groups show-as-ranges "true" --format json')
     script_options.add_argument("--dump", action="store_true")
     script_options.add_argument("--dump_name")
@@ -204,8 +204,12 @@ def main():
     args = parser.parse_args()
 
     parser = Parser()
-    j = parser.parse_file(args.object_file)
-    parser.parse(j)
+    for object_file in args.object_files:
+        j = parser.parse_file(object_file)
+        parser.parse(j)
+
+    parser.resolve_all()
+    parser.summary()
 
     if args.group_ranges:
         j = parser.parse_file(args.group_ranges)
