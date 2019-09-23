@@ -31,11 +31,16 @@ class Parser:
         self.names = {}
 
         self.TYPE_SWITCH = {
-            "port": self.parse_service,
-            "ipv4-address": self.parse_address,
-            "subnet4": self.parse_address,
-            "members": self.parse_group
+            "service-tcp": self.parse_service,
+            "service-udp": self.parse_service,
+            "host": self.parse_address,
+            "network": self.parse_address,
+            "group": self.parse_group,
+            "service-group": self.parse_group,
+            "nat-rule": self.parse_rule,
+            "nat-section": self.parse_rule,
         }
+
 
     def add(self, obj):
         self.ids[obj.get_id()] = obj
@@ -62,13 +67,18 @@ class Parser:
             d = d['objects-dictionary']
 
         for item in d:
-            for k in self.TYPE_SWITCH.keys():
-                if k in item:
-                    obj = self.TYPE_SWITCH[k](item)
-                    self.add(obj)
+            k = item['type']
+            if k in self.TYPE_SWITCH:
+                obj = self.TYPE_SWITCH[k](item)
+                self.add(obj)
+            else:
+                print("type miss: {}".format(k))
 
         self.resolve_all()
         self.summary()
+
+    def parse_rule(self, d):
+        return
 
     def parse_group_range(self, d):
         groups = []
