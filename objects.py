@@ -33,6 +33,9 @@ class Object():
     def dump(self):
         return self.get_name()
 
+    def get_nat(self):
+        return None
+
 class Service(Object):
     def __init__(self, v):
         self.__dict__ = v
@@ -78,9 +81,18 @@ class Address(Object):
         self.nat_settings = None
         if 'nat-settings' in v:
             self.nat_settings = v['nat-settings']
+        else:
+            self.nat_settings = {}
 
     def dump(self):
         return self.ipv4_address
+
+    def get_nat(self):
+        if "method" in self.nat_settings:
+            if self.nat_settings['method'] == "hide":
+                return("Gateway")
+            else:
+                return self.nat_settings['ipv4-address']
 
 class Group(Object):
     def __init__(self, v):
