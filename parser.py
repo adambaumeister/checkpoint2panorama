@@ -201,15 +201,94 @@ class Parser:
 
         return entries
 
-    def fix_nat_rules(self, host, user, pw):
+    def fix_nat(self, host, user, pw):
         pano = panorama.Panorama(host, user, pw)
         panorama.DeviceGroup.refreshall(pano, add=True)
-
         for dg in pano.children:
+
             prerulebase = policies.PreRulebase()
             dg.add(prerulebase)
-            policies.SecurityRule.refreshall(prerulebase)
-            self.fix_security_rules(dg, prerulebase.children)
+
+            natrules = policies.NatRule.refreshall(prerulebase)
+            self.fix_nat_rules(dg, natrules)
+
+            securityrules = policies.SecurityRule.refreshall(prerulebase)
+            self.fix_security_rules(dg, securityrules)
+
+    def fix_nat_rules(self, dg, nat_rules):
+        added = set()
+
+        # Finally fix the dynamic rules as well
+        for nr in nat_rules:
+            new_addrs = []
+            if nr.source_translation_translated_addresses:
+                for dst in nr.source_translation_translated_addresses:
+                    if dst in self.names:
+                        dst_obj = self.names[dst]
+
+                        format_name = "NAT_{}".format(dst_obj.get_name())
+                        n = dst_obj.get_nat()
+                        # Only fix non-hide nat rules
+                        if n:
+                            if n != 'Gateway':
+                                nat_addr = objects.AddressObject(format_name, dst_obj.get_nat())
+                                if format_name not in added:
+                                    print("Adding {} {}".format(format_name, dst_obj.get_nat()))
+                                    dg.add(nat_addr)
+                                    nat_addr.create()
+                                new_addrs.append(format_name)
+
+                if len(new_addrs) > 0:
+                    nr.source_translation_translated_addresses = new_addrs
+                    print("Changing DIPP translated addresses in {} to {}".format(nr.name, new_addrs))
+                    nr.apply()
+        # First we sort out the static source rules
+
+        for nr in nat_rules:
+            translated_src = nr.source_translation_static_translated_address
+            if translated_src:
+                if translated_src in self.names:
+                    obj = self.names[translated_src]
+                    n = obj.get_nat()
+                    # Only fix non-hide nat rules
+                    if n:
+                        if n != 'Gateway':
+                            format_name = "NAT_{}".format(obj.get_name())
+                            nat_addr = objects.AddressObject(format_name, obj.get_nat())
+                            print("Adding {} {}".format(format_name, obj.get_nat()))
+                            dg.add(nat_addr)
+                            nat_addr.create()
+                            added.add(format_name)
+
+                            nr.source_translation_static_translated_address = format_name
+                            print("Fixing source NAT in {} ({})".format(nr.name, format_name))
+
+                            nr.apply()
+
+        # Now fix the incorrect destinations in the policy
+        for nr in nat_rules:
+            new_addrs = []
+            for dst in nr.destination:
+                if dst in self.names:
+                    dst_obj = self.names[dst]
+
+                    format_name = "NAT_{}".format(dst_obj.get_name())
+                    n = dst_obj.get_nat()
+                    # Only fix non-hide nat rules
+                    if n:
+                        if n != 'Gateway':
+                            nat_addr = objects.AddressObject(format_name, dst_obj.get_nat())
+                            if format_name not in added:
+                                print("Adding {} {}".format(format_name, dst_obj.get_nat()))
+                                dg.add(nat_addr)
+                                nat_addr.create()
+                            new_addrs.append(format_name)
+
+            if len(new_addrs) > 0:
+                nr.destination = new_addrs
+                print("Changing destination addresses in {} to {}".format(nr.name, new_addrs))
+                nr.apply()
+
 
     def fix_security_rules(self, dg, security_rules):
         requires_fix = {}
@@ -251,9 +330,6 @@ class Parser:
             sr.destination = new_addrs
             print("Changing destination addresses in {} to {}".format(sr.name, new_addrs))
             sr.apply()
-
-
-
 
 
 def json_pp(j):
@@ -330,7 +406,7 @@ def main():
     pw = env_or_prompt("password", args, secret=True)
 
     if args.fix_nat:
-        parser.fix_nat_rules(addr, user, pw)
+        parser.fix_nat(addr, user, pw)
         exit()
     p = Panos(user=user, addr=addr, pw=pw)
     parser.set_groups(p, args.devicegroup)
