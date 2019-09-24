@@ -40,6 +40,7 @@ class Parser:
             "service-group": self.parse_group,
             "nat-rule": self.parse_natrule,
             "nat-section": self.parse_natsection,
+            "CpmiGatewayCluster": self.parse_address,
         }
 
 
@@ -84,7 +85,8 @@ class Parser:
                 obj = self.TYPE_SWITCH[k](item)
                 self.add(obj)
             else:
-                print("type miss: {}".format(k))
+                #print("type miss: {}".format(k))
+                pass
 
 
     def parse_natrule(self, d):
@@ -148,7 +150,7 @@ class Parser:
         for g in self.groups:
             print(" {} : {}".format(g.get_name(), g.group_type))
             for member in g.members:
-                print("    {}   {}".format(member.name, type(member)))
+                print("    {}   {}".format(member.name, member.dump()))
 
     def dump_names(self):
         print("\n".join(self.names.keys()))

@@ -5,14 +5,16 @@ import os
 class Object():
     def __init__(self, id):
         self.id = id
-        self.type = None
         self.xml_template = ""
 
     def get_id(self):
         return self.id
 
     def get_type(self):
-        return self.type
+        if 'type' in self.__dict__:
+            return self.type
+        else:
+            return "Unknown"
 
     def to_xml(self):
         t = Template(open("templates" + os.sep + "{}".format(self.xml_template)).read())
@@ -27,6 +29,9 @@ class Object():
             return self.name
 
         return self.get_id()
+
+    def dump(self):
+        return self.get_name()
 
 class Service(Object):
     def __init__(self, v):
@@ -64,12 +69,18 @@ class Address(Object):
         self.__dict__ = v
         super(Address, self).__init__(v['uid'])
 
+
+        if self.get_type() == "CpmiClusterMember":
+            print(self.get_name())
+
         self.xml_template = "address.xml"
 
         self.nat_settings = None
         if 'nat-settings' in v:
             self.nat_settings = v['nat-settings']
 
+    def dump(self):
+        return self.ipv4_address
 
 class Group(Object):
     def __init__(self, v):
@@ -93,10 +104,20 @@ class Group(Object):
                 if gt is not Group:
                     self.group_type = gt
 
+        if 'others' in self.__dict__:
+            print(self.get_name())
+
         self.members = new_members
 
     def resolve_ranges(self):
         r = []
+
+        # When there is a special
+        if 'others' in self.ranges:
+            if len(self.ranges['others']) > 0:
+                self.members = []
+                return
+
         self.group_type = Address
         for v4_range in self.ranges['ipv4']:
             start = v4_range['start']
@@ -110,6 +131,7 @@ class Group(Object):
                     "uid": "manual",
                     "name": name,
                     "ipv4-address": cidr,
+                    "type": "network"
                 }
                 a = Address(address_d)
                 r.append(a)
